@@ -1,7 +1,7 @@
 mod data;
 mod resource;
 
-use axum::extract::{Json, Path, Query};
+use axum::extract::{Form, Json, Path, Query};
 use axum::http::{header, StatusCode, Uri};
 use axum::response::{AppendHeaders, Html, IntoResponse};
 use axum::routing::{get, post};
@@ -11,8 +11,8 @@ use std::collections::HashMap;
 use std::thread;
 use tokio::net::TcpListener;
 
-use crate::resource::Resource;
 use crate::data::DATA;
+use crate::resource::Resource;
 
 #[allow(unused)]
 async fn print_data() {
@@ -37,11 +37,17 @@ async fn main() {
         .route("/demo_png", get(get_demo_png))
         .route("/items", get(get_items))
         .route("/items/:id", get(get_items_id))
-        .route("/demo.json", get(get_demo_json))
-        .route("/demo.json", post(post_demo_json))
+        .route("/demo.json", get(get_demo_json).post(post_demo_json))
         .route("/resources", get(get_resources))
-        .route("/resources/:id", get(get_one_resource))
+        .route(
+            "/resources/:id",
+            get(get_one_resource).delete(delete_one_resources),
+        )
         .route("/resources", post(post_resources))
+        .route(
+            "/resources/:id/form",
+            get(get_resources_form).post(post_resources_form),
+        )
         .route("/demo.html", get(get_demo_html));
 
     let listener = TcpListener::bind("0.0.0.0:6969").await.unwrap();
@@ -129,11 +135,74 @@ pub async fn get_one_resource(Path(id): Path<u32>) -> Html<String> {
     .into()
 }
 
+pub async fn delete_one_resources(Path(id): Path<u32>) -> Html<String> {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        if data.contains_key(&id) {
+            data.remove(&id);
+            format!("Delete resource id {}", &id)
+        } else {
+            format!("Resource id {} not found", &id)
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
 pub async fn post_resources(Json(resource): Json<Resource>) -> Html<String> {
     thread::spawn(move || {
         let mut data = DATA.lock().unwrap();
         data.insert(resource.id, resource.clone());
         format!("POST resource: {}", &resource)
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+pub async fn get_resources_form(Path(id): Path<u32>) -> Html<String> {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        match data.get(&id) {
+            Some(resource) => format!(
+                concat!(
+                    "<form method=\"post\" action=\"/resources/{}/form\">\n",
+                    "<input type=\"input\" name=\"id\" value=\"{}\">\n",
+                    "<input type=\"input\" name=\"name\" value=\"{}\">\n",
+                    "<input type=\"input\" name=\"email\" value=\"{}\">\n",
+                    "<input type=\"input\" name=\"role\" value=\"{}\">\n",
+                    "<input type=\"input\" name=\"emp_type\" value=\"{}\">\n",
+                    "<input type=\"input\" name=\"manager\" value=\"{}\">\n",
+                    "<input type=\"submit\" value=\"Save\">\n",
+                    "</form>\n"
+                ),
+                &resource.id,
+                &resource.id,
+                &resource.name,
+                &resource.email,
+                &resource.role,
+                &resource.emp_type,
+                &resource.manager
+            ),
+            None => format!("<p>Resource id {} not found</p>\n", id),
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+pub async fn post_resources_form(form: Form<Resource>) -> Html<String> {
+    let new_resource: Resource = form.0;
+    thread::spawn(move || {
+        let mut data = DATA.lock().unwrap();
+        if data.contains_key(&new_resource.id) {
+            data.insert(new_resource.id, new_resource.clone());
+            format!("<p>Updated: {}</p>\n", &new_resource)
+        } else {
+            format!("Resource id {} not found", &new_resource.id)
+        }
     })
     .join()
     .unwrap()
