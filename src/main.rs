@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::thread;
 use tokio::net::TcpListener;
 
+use crate::resource::Resource;
 use crate::data::DATA;
 
 #[allow(unused)]
@@ -39,6 +40,8 @@ async fn main() {
         .route("/demo.json", get(get_demo_json))
         .route("/demo.json", post(post_demo_json))
         .route("/resources", get(get_resources))
+        .route("/resources/:id", get(get_one_resource))
+        .route("/resources", post(post_resources))
         .route("/demo.html", get(get_demo_html));
 
     let listener = TcpListener::bind("0.0.0.0:6969").await.unwrap();
@@ -94,11 +97,11 @@ pub async fn get_demo_json() -> Json<Value> {
     json!({"a": "b"}).into()
 }
 
-pub async fn post_demo_json(axum::extract::Json(data): axum::Json<serde_json::Value>) -> String {
+pub async fn post_demo_json(Json(data): Json<serde_json::Value>) -> String {
     format!("Post demo JSON data: {:?}\n", data)
 }
 
-pub async fn get_resources() -> axum::response::Html<String> {
+pub async fn get_resources() -> Html<String> {
     thread::spawn(move || {
         let data = DATA.lock().unwrap();
         let mut resources = data.values().collect::<Vec<_>>().clone();
@@ -107,6 +110,30 @@ pub async fn get_resources() -> axum::response::Html<String> {
             .iter()
             .map(|&resource| format!("<p>{}</p>\n", &resource))
             .collect::<String>()
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+pub async fn get_one_resource(Path(id): Path<u32>) -> Html<String> {
+    thread::spawn(move || {
+        let data = DATA.lock().unwrap();
+        match data.get(&id) {
+            Some(resource) => format!("<p>{}</p>\n", &resource),
+            None => format!("<p>Resource id {} not found", id),
+        }
+    })
+    .join()
+    .unwrap()
+    .into()
+}
+
+pub async fn post_resources(Json(resource): Json<Resource>) -> Html<String> {
+    thread::spawn(move || {
+        let mut data = DATA.lock().unwrap();
+        data.insert(resource.id, resource.clone());
+        format!("POST resource: {}", &resource)
     })
     .join()
     .unwrap()

@@ -6,7 +6,7 @@ use std::sync::Mutex;
 pub static DATA: Lazy<Mutex<HashMap<u32, Resource>>> = Lazy::new(|| {
     Mutex::new(HashMap::from([
         (
-            1,
+            100001,
             Resource {
                 id: 100001,
                 name: "Jane Doe".into(),
@@ -17,7 +17,7 @@ pub static DATA: Lazy<Mutex<HashMap<u32, Resource>>> = Lazy::new(|| {
             },
         ),
         (
-            2,
+            100002,
             Resource {
                 id: 100002,
                 name: "John Doe".into(),
@@ -28,7 +28,7 @@ pub static DATA: Lazy<Mutex<HashMap<u32, Resource>>> = Lazy::new(|| {
             },
         ),
         (
-            3,
+            100003,
             Resource {
                 id: 100003,
                 name: "Jill Doe".into(),
