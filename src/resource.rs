@@ -12,6 +12,10 @@ pub struct Resource {
 
 impl std::fmt::Display for Resource {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{} [{}], {}, Type: {}, Manager: {}", self.name, self.email, self.role, self.emp_type, self.manager)
+        write!(
+            f,
+            "{} [{}], {}, Type: {}, Manager: {}",
+            self.name, self.email, self.role, self.emp_type, self.manager
+        )
     }
 }
