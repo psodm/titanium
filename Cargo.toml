@@ -1,0 +1,16 @@
+[package]
+name = "titanium"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.7.2"
+base64 = "0.21.5"
+http = "1.0.0"
+hyper = { version = "1.0.1", features = ["full"] }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
+tokio = { version = "1.35.0", features = ["full"] }
+tower = "0.4.13"
